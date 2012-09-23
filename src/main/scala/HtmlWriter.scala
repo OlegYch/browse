@@ -134,11 +134,11 @@ class HtmlWriter(context: OutputWriterContext) extends OutputWriter {
 
   def writeEnd() {
     val indexFile = new File(outputDirectory, IndexRelativePath)
-    allDirs(outputDirectory).foreach{
-      case (idx,subdirs) =>
-      writeIndex(idx,Nil,subdirs)
-    }
-    writeIndex(indexFile, outputFiles.toList ,Nil)
+//    allDirs(outputDirectory).foreach{
+//      case (idx,subdirs) =>
+//      writeIndex(idx,Nil,subdirs)
+//    }
+//    writeIndex(indexFile, outputFiles.toList ,Nil)
   }
 
   def allDirs(root:File):Map[File,List[File]] = {

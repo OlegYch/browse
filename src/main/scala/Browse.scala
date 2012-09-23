@@ -87,7 +87,7 @@ abstract class Browse extends Plugin
   def generateOutput(externalLinks: List[LinkMap])
   {
     val sourceFiles = currentRun.units.toList.flatMap(getSourceFile(_))
-    writeSubDirectoryIndex(sourceFiles)
+//    writeSubDirectoryIndex(sourceFiles)
 
     if (sourceFiles.size > 0) {
       val links = new CompoundLinkMap(linkStore.read(None), externalLinks)
