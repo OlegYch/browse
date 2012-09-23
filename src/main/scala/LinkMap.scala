@@ -23,7 +23,7 @@ trait LinkMap
 `apply` and `get` are applied across `write` and `readOnly`.*/
 class CompoundLinkMap(write: LinkMap, readOnly: List[LinkMap]) extends LinkMap
 {
-  def all = write :: readOnly
+  def all = readOnly ::: List(write)
   def update(src: String, stableID: String, id: Int) = write.update(src, stableID, id)
   def clear(srcs: Iterable[String]) = write.clear(srcs)
   def apply(stable: String) = all.flatMap{ _(stable) }.headOption
