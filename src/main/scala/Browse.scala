@@ -8,11 +8,10 @@ import scala.tools.nsc.{ast, plugins, symtab, util, Global}
 import ast.parser.Tokens
 import plugins.Plugin
 import symtab.Flags
-import util.SourceFile
+import reflect.internal.util.SourceFile
 
 import java.io.{File, Reader, Writer}
 import java.net.URL
-import forScope._
 
 import OutputFormat.{OutputFormat, getWriter}
 import Browse._
@@ -121,49 +120,38 @@ abstract class Browse extends Plugin
   private def scan(unit: CompilationUnit) =
   {
     val tokens = wrap.Wrappers.treeSet[Token]
-    val scanner = new syntaxAnalyzer.UnitScanner(unit) { override def init {}; def parentInit = super.init }
-    implicit def iterator28(s: syntaxAnalyzer.UnitScanner) = 
-    {
-      class CompatIterator extends Iterator[(Int, Int, Int)]
-      {
-        def next =
-        {
-            type TD = { def offset: Int; def lastOffset: Int; def token: Int }
-            class Compat { def prev: TD = null; def next: TD = null; def offset = 0; def token = 0; def lastOffset = 0 }
-            implicit def keep27SourceCompatibility(a: AnyRef): Compat =  new Compat// won't ever be called
-          val offset = s.offset
-          val token = s.token
-          s.nextToken
-          (offset, (s.lastOffset - offset) max 1, token)
-        }
-        def hasNext = s.token != Tokens.EOF
-      }
-      
-      scanner.parentInit
-      new { def iterator = new CompatIterator }
-    }
-    for( (offset, length, code) <- scanner.iterator)
-    {
-      if(includeToken(code))
-        tokens += new Token(offset, length, code)
-    }
+		def addComment(start: Int, end: Int) { tokens += new Token(start, end - start + 1, Tokens.COMMENT) }
 
-    // Comment handling:
-    // in 2.7 comments are included in the token stream
-    // in 2.8 comments are collected separately in unit.comments
-    
-    // Compability for 2.7: return no comments with the syntax of 2.8
-    import unit._
-    implicit def noCommentsInScala27(u: CompilationUnit) = new {
-      def comments: Seq[Comment] = Seq.empty
+		class Scan extends syntaxAnalyzer.UnitScanner(unit)
+        {
+			override def deprecationWarning(off: Int, msg: String) {}
+			override def error(off: Int, msg: String) {}
+			override def incompleteInputError(off: Int, msg: String) {}
+      
+			override def foundComment(value: String, start: Int, end: Int) {
+				addComment(start, end)
+				super.foundComment(value, start, end)
     }
-    implicit def rangePositionNeedsStartEndIn27(r: util.RangePosition) = new {
-      def start = 0
-      def end = 0
+			override def foundDocComment(value: String, start: Int, end: Int) {
+				addComment(start, end)
+				super.foundDocComment(value, start, end)
     }
+			override def nextToken() {
+				val offset0 = offset
+				val code = token
+
+				super.nextToken()
     
-          for (Comment(_, pos) <- unit.comments)
-      tokens += new Token(pos.start, pos.end - pos.start + 1, Tokens.COMMENT)
+				if(includeToken(code)) {
+					val length = (lastOffset - offset0) max 1
+					tokens += new Token(offset0, length, code)
+    }
+    }
+		}
+		val parser = new syntaxAnalyzer.UnitParser(unit) {
+			override def newScanner = new Scan
+		}
+		parser.parse()
 
     tokens
   }
@@ -181,10 +169,13 @@ abstract class Browse extends Plugin
   }
   /** Gets the token for the given offset.*/
   private def tokenAt(tokens: wrap.SortedSetWrapper[Token], offset: Int): Option[Token] =
+		tokensAt(tokens, offset).headOption
+	/** Gets the token for the given offset.*/
+	private def tokensAt(tokens: wrap.SortedSetWrapper[Token], offset: Int): List[Token] =
   {
     // create artificial tokens to get a subset of the tokens starting at the given offset
     // then, take the first token in the range
-    tokens.range(new Token(offset, 1, 0), new Token(offset+1, 1, 0)).first
+		tokens.range(new Token(offset, 1, 0), new Token(offset+1, 1, 0)).toList
   }
 
   /** Filters unwanted symbols, such as packages.*/
@@ -236,10 +227,8 @@ abstract class Browse extends Plugin
     // magic method #2
     private def process(t: Tree)
     {
-      // this implicit exists for 2.7/2.8 compatibility
-      implicit def source2Option(s: SourceFile): Option[SourceFile] = Some(s)
-      def catchToNone[T](f: => Option[T]): Option[T] = try { f } catch { case e: UnsupportedOperationException => None }
-      for(tSource <- catchToNone(t.pos.source) if tSource == source; offset <- t.pos.offset; token <- tokenAt(tokens, offset))
+			def catchToNone[T](f: => T): Option[T] = try Some(f) catch { case e: UnsupportedOperationException => None }
+			for(tSource <- catchToNone(t.pos.source) if tSource == source; token <- tokenAt(tokens, t.pos.point))
       {
         def processDefaultSymbol() =
         {
@@ -258,7 +247,6 @@ abstract class Browse extends Plugin
           case _: This => processDefaultSymbol()
           case s: Select => processDefaultSymbol()
           case _: New => processSimple()
-          case _: Sequence => processDefaultSymbol()
           case _: Alternative => processDefaultSymbol()
           case _: Star => processDefaultSymbol()
           case _: Bind => processDefaultSymbol()
@@ -285,7 +273,8 @@ abstract class Browse extends Plugin
           case _: Return => processSimple()
           case _: If => processSimple()
           case _: Match => processSimple() // this will annotate the 'match' keyword with the type returned by the associated pattern match
-          case _: CaseDef => processSimple() // this will annotate the 'case' keyword with the type returned by that particular case statement
+// The associated token is no longer the case keyword, but the pattern, so this would overwrite the pattern's type.
+//					case _: CaseDef => processSimple() // this will annotate the 'case' keyword with the type returned by that particular case statement
           case _: Throw => processSimple()
           case ta: TypeApply => processSimple() // this fills in type parameters for methods
           case Ident(_) => processDefaultSymbol()
@@ -419,7 +408,7 @@ abstract class Browse extends Plugin
     }
   }
 
-  /** Generates a link usable in the file 'from' to the symbol 'to', which might be in some other file. */
+	/** Generates a link usable in the file 'from' to the symbol 'sym', which might be in some other file. */
   private def linkTo(from: File, sym: Symbol, links: LinkMap): Option[Link] =
   {
     if(sym == null || sym == NoSymbol || sym.owner == NoSymbol)
@@ -453,7 +442,7 @@ abstract class Browse extends Plugin
   private def stableID(sym: Symbol) =
   {
     val tpe = if(sym.isTerm) "term" else "type"
-    val name = Compat.nameString(sym)
+		val name = nameString(sym)
     val over = if(sym.isMethod) name + "(" + methodHash(sym) + ")" else name
     tpe + " " + over
   }
@@ -461,20 +450,5 @@ abstract class Browse extends Plugin
   private def methodHash(sym: Symbol) = FileUtil.hash(sym.tpe.toString)
   private def relativeSource(file: File) = new File(getRelativeSourcePath(file.getAbsoluteFile))
 
-  private object Compat
-  {
-    def nameString(s: Symbol): String = s.fullNameString
-    /** After 2.8.0.Beta1, fullNameString was renamed fullName.*/
-    private implicit def symCompat(sym: Symbol): SymCompat = new SymCompat(sym)
-    private final class SymCompat(s: Symbol) {
-      def fullNameString = s.fullName; def fullName = sourceCompatibilityOnly
-    }
-    private def sourceCompatibilityOnly = error("For source compatibility only: should not get here.")
-  }
-}
-
-// for compatibility with 2.8
-package forScope {
-  class Sequence
-  case class Comment(v: String, pos: util.RangePosition)
+	private[this] def nameString(s: Symbol): String = s.fullName
 }

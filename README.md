@@ -1,50 +1,54 @@
-# browse [![Build Status](https://secure.travis-ci.org/xuwei-k/browse.png)](http://travis-ci.org/xuwei-k/browse)
+Browsable Scala source code in HTML with:
 
-* originalのもの https://github.com/harrah/browse を微妙に改造してます
-* 基本的なことはもとの README を読んでください https://github.com/xuwei-k/browse/blob/master/README_original.md
+- syntax highlighting
+- types/applied implicits in tooltips
+- references/definition highlighted on mouseover
+- links to definition
 
-### 改造した点
+See <http://harrah.github.com/browse/samples/index.html> for samples.
 
-* すべての directory に index.html を吐くようにしました
-* ファイルの行数を index.html に表示するようにしました
-* sub directory 一覧をindex.htmlに表示するようにしました
-* (gh-pagesに載せるとき微妙に不便だったので) headerにちょっと付け足して、htmlのキャッシュを無効にしました
-* 基本的にindex.htmlのaタグに、 ` target="_brank" ` を加えて、新しいタブで開くようにしました。
+Still in development.  Bugs are features and features are accidental.
 
-### 注意点など
+To build with sbt (see <http://scala-sbt.org/release/docs/Getting-Started/Setup.html> for setup instructions):
 
-* Pathの区切り文字の処理の関係で、windowsだと正常に動かない可能性大
-* sbtのデフォルトのフォルダ構成で使うことを前提としてソースコードのディレクトリなどを検索してしまってる部分があるので、色々もうあれ
-
-### 使い方
-
-github page に maven リポジトリがあってそこに置いてあります。
-なので、例えばsbtならば以下を`build.sbt`に書けば使えるはずです
-
-```scala
-resolvers += "xuwei-k repo" at "http://xuwei-k.github.io/mvn"
+```
+$ sbt package
 ```
 
-それ以外は全くオリジナルと同じですが、例えば以下のように設定します
+This produces a compiler plugin in target/.
+
+Usage
+
+Add the following options to your compile command for your project:
+
+```
+  -Xplugin:<path-to-sxr>/sxr-0.3.0-SNAPSHOT.jar
+  -P:sxr:base-directory:<src-dir>
+```
+
+If you are using sbt, add sxr as a plugin and configure the sxr plugin:
 
 ```scala
-addCompilerPlugin("org.scala-tools.sxr" % "sxr_2.9.1" % "0.2.8-SNAPSHOT" )
+addCompilerPlugin("org.scala-tools.sxr" % "sxr" % "0.3.0-SNAPSHOT" cross CrossVersion.full)
 
 scalacOptions <+= scalaSource in Compile map { "-P:sxr:base-directory:" + _.getAbsolutePath }
 ```
 
+You will get a directory <classes-output>.sxr that mirrors the directory structure of your sources relative
+to the specified base directory with one HTML file for each source file.  You can make simple
+changes to the syntax highlighting in the style.css file in the root output directory.  The linked.js
+file implements the highlighting of refererences, among other things.
 
-### Sample
+Other options include specifying the output format and linking to other sxr sources.
 
-自分が改造したversionのsxrで作成した scala 自体のlibrary や compiler の sxr を勝手にgh-pagesに上げちゃってるので参考までに(´・ω・)っ
+To link to other sxr sources (produced with sxr 0.2.5 or later), follow these two steps.
 
-http://xuwei-k.github.com/scala-library-sxr/scala-library-2.9.1/
+1. put the URLs of the other sxr sources in a file, say 'sxr.links'.  The URLs should point to the base directories, not to 'index.html' or any specific file.
+2. Specify the location of this file in the 'link-file' sxr option.  For example, in addition to the settings above, use:
 
-http://xuwei-k.github.com/scala-compiler-sxr/scala-compiler-2.9.1/
-
-http://xuwei-k.github.com/scala-library-sxr/scala-library-2.10.0-M1/
-
-### TODO
-* ファイルの行番号表示とかやりたい
-* テストないェ・・・
-* 検索できるようにするとか？
+```scala
+scalacOptions <+= baseDirectory map { base =>
+  val linkFile = base / "sxr.links"
+  "-P:sxr:link-file:" + linkFile.getAbsolutePath)
+}
+```

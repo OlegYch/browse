@@ -6,13 +6,13 @@ package sxr
 
 import scala.tools.nsc.ast.parser.Tokens
 
-private trait Styler extends NotNull
+private trait Styler
 {
   def head: String
   def apply(token: Token): List[Annotation]
   def tail: String
 }
-private case class Annotation(open: String, close: String) extends NotNull
+private case class Annotation(open: String, close: String)
 
 object Classes
 {
@@ -23,7 +23,7 @@ private class BasicStyler(title: String, baseStyle: String, baseJs: String, base
   import Classes._
   def head =
     ("""<?xml version="1.0" encoding="utf-8"?>
-      <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+			|<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
       |<html xmlns="http://www.w3.org/1999/xhtml">
       |    <head>
       |        <meta http-equiv="Content-Type" content="text/html;charset=utf-8" ></meta>
@@ -40,7 +40,8 @@ private class BasicStyler(title: String, baseStyle: String, baseJs: String, base
     """|
       |        </pre>
       |    </body>
-        |</html>""".stripMargin
+		   |</html>
+			|""".stripMargin
   
   def apply(token: Token) =
   {
