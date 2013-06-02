@@ -22,6 +22,10 @@ object XRay extends Build {
 
   lazy val test = project.dependsOn(main % CompilerPlugin).settings(
     autoCompilerPlugins := true,
+    scalacOptions := {
+      val sxrPluginJar = Seq((packageBin in Compile in main).value)
+      sxrPluginJar.map("-Xplugin:" + _.getAbsolutePath)
+		},
     compile in Compile <<= (compile in Compile).dependsOn(clean),
     Keys.test <<= (compile in Compile, classDirectory in Compile, baseDirectory, streams).map {
       (_, out, base, s) =>
