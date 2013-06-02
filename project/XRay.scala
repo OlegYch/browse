@@ -1,2 +1,100 @@
-\ timport sbt._ \ n \ timport Keys._ \ n \ timport Configurations.CompilerPlugin \ n \ nobject XRay extends Build \ n {
-  \ n \ tlazy val main = Project(\ "sxr\", file(\".\")) settings(\n\t\tname := \"sxr\",\n\t\torganization in ThisBuild := \"org.scala-sbt.sxr\",\n\t\tversion in ThisBuild := \"0.3.0-SNAPSHOT\",\n\t\tscalaVersion in ThisBuild := \"2.10.1\",\n\t\tscalacOptions += \"-deprecation\",\n\t\tivyConfigurations += js,\n\t\texportJars := true,\n\t\tlibraryDependencies ++= dependencies,\n\t\tlibraryDependencies <+= scalaVersion(\"org.scala-lang\" % \"scala-compiler\" % _ % \"provided\"),\n\t\tjqueryAll <<= target(_ / \"jquery-all.js\"),\n\t\tcombineJs <<= (update,jqueryAll,streams) map { (report, all, s) => combineJquery(report, all, s.log) },\n\t\tresourceGenerators in Compile <+= combineJs\n\t)\n\n\tlazy val test = project.dependsOn(main % CompilerPlugin).settings(\n\t\tautoCompilerPlugins := true,\n\t\tcompile in Compile <<= (compile in Compile).dependsOn(clean),\n\t\tKeys.test <<= (compile in Compile, classDirectory in Compile, baseDirectory, streams).map { (_, out, base, s) =>\n\t\t\tcheckOutput(out / \"../classes.sxr\", base / \"expected\", s.log)\n\t\t}\n\t)\n\n\tval js = config(\"js\").hide\n\t\n\tval combineJs = TaskKey[Seq[File]](\"combine-js\")\n\tval jqueryAll = SettingKey[File](\"jquery-all\")\n\t\n\tval jquery_version = \"1.3.2\"\n\tval jquery_scrollto_version = \"1.4.2\"\n\tval jquery_qtip_version = \"1.0.0-rc3\"\n\n\tdef dependencies = Seq(\n\t\t\"jquery\" % \"jquery\"          % jquery_version          % \"js->default\" from (\"http://jqueryjs.googlecode.com/files/jquery-\" + jquery_version + \".min.js\"),\n\t\t\"jquery\" % \"jquery-scrollto\" % jquery_scrollto_version % \"js->default\" from (\"http://flesler-plugins.googlecode.com/files/jquery.scrollTo-\" + jquery_scrollto_version + \"-min.js\"),\n\t\t\"jquery\" % \"jquery-qtip\"     % jquery_qtip_version     % \"js->default\" from (\"http://craigsworks.com/projects/qtip/packages/1.0.0-rc3/jquery.qtip-\" + jquery_qtip_version + \".min.js\")\n\t)\n\n\tdef combineJquery(report: UpdateReport, jsOut: File, log: Logger): Seq[File] =\n\t{\n\t\tIO.delete(jsOut)\n\t\tinputs(report) foreach { in => appendJs(in, jsOut) }\n\t\tlog.info(\"Wrote combined js to \" + jsOut.getAbsolutePath)\n\t\tSeq(jsOut)\n\t}\n\tdef inputs(report: UpdateReport) = report.select( configurationFilter(js.name)) sortBy { _.name }\n\tdef appendJs(js: File, to: File): Unit =\n\t\tUsing.fileInputStream(js) { in =>\n\t\t\tUsing.fileOutputStream(append = true)(to) { out => IO.transfer(in, out) }\n\t\t}\n\n\n\tdef checkOutput(sxrDir: File, expectedDir: File, log: Logger) {\n\t\tval actual = filesToCompare(sxrDir)\n\t\tval expected = filesToCompare(expectedDir)\n\t\tval actualRelative = actual._2s\n\t\tval expectedRelative = expected._2s\n\t\tif(actualRelative != expectedRelative) {\n\t\t\tval actualOnly = actualRelative -- expectedRelative\n\t\t\tval expectedOnly = expectedRelative -- actualRelative\n\t\t\tdef print(n: Iterable[String]): String = n.mkString(\"\\n\\t\", \"\\n\\t\", \"\\n\")\n\t\t \tlog.error(s\"Actual filenames not expected: ${print(actualOnly)}Expected filenames not present: ${print(expectedOnly)}\")\n\t\t\terror(\"Actual filenames differed from expected filenames.\")\n\t\t}\n\t\tval different = actualRelative filterNot { relativePath =>\n\t\t\tval actualFile = actual.reverse(relativePath).head\n\t\t\tval expectedFile = expected.reverse(relativePath).head\n\t\t\tval same = sameFile(actualFile, expectedFile)\n\t\t\tif(!same) log.error(s\"$relativePath\\n\\t$actualFile\\n\\t$expectedFile\")\n\t\t\tsame\n\t\t}\n\t\tif(different.nonEmpty)\n\t\t\terror(\"Actual content differed from expected content\")\n\t}\n\tdef filesToCompare(dir: File): Relation[File,String] = {\n\t\tval mappings = dir ** (\"*.html\" - \"index.html\") x relativeTo(dir)\n\t\tRelation.empty ++ mappings\n\t}\n\tdef sameFile(actualFile: File, expectedFile: File): Boolean =\n\t\tIO.read(actualFile) == IO.read(expectedFile)\n}
+import sbt._
+import Keys._
+import Configurations.CompilerPlugin
+
+object XRay extends Build {
+  lazy val main = Project("sxr", file(".")) settings(
+    name := "sxr",
+    organization in ThisBuild := "org.scala-sbt.sxr",
+    version in ThisBuild := "0.3.0-SNAPSHOT",
+    scalaVersion in ThisBuild := "2.10.1",
+    scalacOptions += "-deprecation",
+    ivyConfigurations += js,
+    exportJars := true,
+    libraryDependencies ++= dependencies,
+    libraryDependencies <+= scalaVersion("org.scala-lang" % "scala-compiler" % _ % "provided"),
+    jqueryAll <<= target(_ / "jquery-all.js"),
+    combineJs <<= (update, jqueryAll, streams) map {
+      (report, all, s) => combineJquery(report, all, s.log)
+    },
+    resourceGenerators in Compile <+= combineJs
+    )
+
+  lazy val test = project.dependsOn(main % CompilerPlugin).settings(
+    autoCompilerPlugins := true,
+    compile in Compile <<= (compile in Compile).dependsOn(clean),
+    Keys.test <<= (compile in Compile, classDirectory in Compile, baseDirectory, streams).map {
+      (_, out, base, s) =>
+        checkOutput(out / "../classes.sxr", base / "expected", s.log)
+    }
+  )
+
+  val js = config("js").hide
+
+  val combineJs = TaskKey[Seq[File]]("combine-js")
+  val jqueryAll = SettingKey[File]("jquery-all")
+
+  val jquery_version = "1.3.2"
+  val jquery_scrollto_version = "1.4.2"
+  val jquery_qtip_version = "1.0.0-rc3"
+
+  def dependencies = Seq(
+    "jquery" % "jquery" % jquery_version % "js->default" from ("http://jqueryjs.googlecode.com/files/jquery-" + jquery_version + ".min.js"),
+    "jquery" % "jquery-scrollto" % jquery_scrollto_version % "js->default" from ("http://flesler-plugins.googlecode.com/files/jquery.scrollTo-" + jquery_scrollto_version + "-min.js"),
+    "jquery" % "jquery-qtip" % jquery_qtip_version % "js->default" from ("http://craigsworks.com/projects/qtip/packages/1.0.0-rc3/jquery.qtip-" + jquery_qtip_version + ".min.js")
+  )
+
+  def combineJquery(report: UpdateReport, jsOut: File, log: Logger): Seq[File] = {
+    IO.delete(jsOut)
+    inputs(report) foreach {
+      in => appendJs(in, jsOut)
+    }
+    log.info("Wrote combined js to " + jsOut.getAbsolutePath)
+    Seq(jsOut)
+  }
+
+  def inputs(report: UpdateReport) = report.select(configurationFilter(js.name)) sortBy {
+    _.name
+  }
+
+  def appendJs(js: File, to: File): Unit =
+    Using.fileInputStream(js) {
+      in =>
+        Using.fileOutputStream(append = true)(to) {
+          out => IO.transfer(in, out)
+        }
+    }
+
+
+  def checkOutput(sxrDir: File, expectedDir: File, log: Logger) {
+    val actual = filesToCompare(sxrDir)
+    val expected = filesToCompare(expectedDir)
+    val actualRelative = actual._2s
+    val expectedRelative = expected._2s
+    if (actualRelative != expectedRelative) {
+      val actualOnly = actualRelative -- expectedRelative
+      val expectedOnly = expectedRelative -- actualRelative
+      def print(n: Iterable[String]): String = n.mkString("\n\t", "\n\t", "\n")
+      log.error(s"Actual filenames not expected: ${print(actualOnly)}Expected filenames not present: ${print(expectedOnly)}")
+      error("Actual filenames differed from expected filenames.")
+    }
+    val different = actualRelative filterNot {
+      relativePath =>
+        val actualFile = actual.reverse(relativePath).head
+        val expectedFile = expected.reverse(relativePath).head
+        val same = sameFile(actualFile, expectedFile)
+        if (!same) log.error(s"$relativePath\n\t$actualFile\n\t$expectedFile")
+        same
+    }
+    if (different.nonEmpty)
+      error("Actual content differed from expected content")
+  }
+
+  def filesToCompare(dir: File): Relation[File, String] = {
+    val mappings = dir ** ("*.html" - "index.html") x relativeTo(dir)
+    Relation.empty ++ mappings
+  }
+
+  def sameFile(actualFile: File, expectedFile: File): Boolean =
+    IO.read(actualFile) == IO.read(expectedFile)
+}
