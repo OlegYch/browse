@@ -68,7 +68,6 @@ class BrowsePlugin(val global: Global) extends Browse
 			.orElse { error("Invalid sxr output format: " + s) ; None }
 		str.split(OutputFormatSeparator).flatMap(valueOf).toList
 	}
-
 	private def parseExternalLinks(links: String): List[URL] =
 	{
 		val f = new File(links)
@@ -104,26 +103,25 @@ class BrowsePlugin(val global: Global) extends Browse
 	private class BrowsePhase(prev: Phase) extends Phase(prev)
 	{
 		def name = BrowsePlugin.this.name
-		def run = generateOutput(externalLinkMaps)
+		def run = generateOutput(externalIndexes)
 	}
 
-	private def externalLinkMaps: List[LinkMap] = externalLinkURLs.map(getLinkMap)
-	private def getLinkMap(link: URL) =
+	private def externalIndexes: List[TopLevelIndex] = externalLinkURLs.map(getIndex)
+	private def getIndex(link: URL) =
 	{
 		val index = new URL(link, Browse.LinkIndexRelativePath)
 		val cached = cachedLinkFile(index)
 		if(!cached.exists) {
-			try {
-				FileUtil.downloadCompressed(new URL(link, Browse.CompressedLinkIndexRelativePath), cached)
-			} catch {
+			try FileUtil.downloadCompressed(new URL(link, Browse.CompressedLinkIndexRelativePath), cached)
+			catch {
 				case e: java.io.IOException => FileUtil.download(index, cached)
 			}
 		}
-		LinkMapStore.read(cached, Some(link))
+		TopLevelIndex.read(cached).setBase(link.toURI)
 	}
 	private def cachedLinkFile(link: URL): File =
 	{
-		val cacheDirectory = new File( classDirectory.getParentFile, Browse.CacheRelativePath)
+		val cacheDirectory = new File(classDirectory.getParentFile, Browse.CacheRelativePath)
 		new File(cacheDirectory, FileUtil.hash(link.toExternalForm))
 	}
 
@@ -135,5 +133,10 @@ class BrowsePlugin(val global: Global) extends Browse
 			case x :: Nil => x
 			case xs => xs reduceLeft shortest
 		}
+	def getFullSourcePath(relative: String): Option[File] =
+		baseDirectories.flatMap { base =>
+			val f = new File(base, relative)
+			if(f.exists) f :: Nil else Nil
+		}.headOption
 	private[this] def shortest(a: String, b: String) = if(a.length < b.length) a else b
 }
