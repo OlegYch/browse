@@ -19,7 +19,7 @@ private class Link(val path: String, val target: StableID)
 * 'start' is the offset of the token in the original source file.
 * 'length' is the length of the token in the original source file
 * 'code' is the class of the token (see Tokens in the compiler)*/
-private case class Token(start: Int, length: Int, code: Int) extends Ordered[Token] with Comparable[Token]
+private case class Token(start: Int, length: Int, code: TokenType) extends Ordered[Token] with Comparable[Token]
 {
 	require(start >= 0)
 	require(length > 0)

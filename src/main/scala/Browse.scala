@@ -109,7 +109,7 @@ abstract class Browse extends Plugin
 	private def scan(unit: CompilationUnit) =
 	{
 		val tokens = wrap.Wrappers.treeSet[Token]
-		def addComment(start: Int, end: Int) { tokens += new Token(start, end - start + 1, Tokens.COMMENT) }
+		def addComment(start: Int, end: Int) { tokens += new Token(start, end - start + 1, CommentToken) }
 
 		class Scan extends syntaxAnalyzer.UnitScanner(unit)
 		{
@@ -127,14 +127,14 @@ abstract class Browse extends Plugin
 
 			override def nextToken() {
 				val offset0 = offset
-				val code = token
+				val code = TokenType(token)
 
 				super.nextToken()
 
-				if(includeToken(code)) {
-					val length = (lastOffset - offset0) max 1
-					tokens += new Token(offset0, length, code)
-				}
+        code.filter(includeToken).foreach { code =>
+          val length = (lastOffset - offset0) max 1
+          tokens += new Token(offset0, length, code)
+        }
 			}
 		}
 		if(unit.isJava)
@@ -149,11 +149,9 @@ abstract class Browse extends Plugin
 	/** Filters out unwanted tokens such as whitespace and commas.  Braces are currently
 	* included because () is annotated as Unit, and a partial function created by
 	* { case ... } is associated with the opening brace.  */
-  private def includeToken(code: Int) = {
-    TokenType(code).exists {
-      case KeywordToken | IdentifierToken | DelimiterToken | CommentToken | UscoreToken => true
-      case any => any.literal
-    }
+  private def includeToken(code: TokenType) = code match {
+    case KeywordToken | IdentifierToken | DelimiterToken | CommentToken | UscoreToken => true
+    case any => any.literal
   }
 	/** Gets the token for the given offset.*/
 	private def tokenAt(tokens: wrap.SortedSetWrapper[Token], offset: Int): Option[Token] =
@@ -163,7 +161,7 @@ abstract class Browse extends Plugin
 	{
 		// create artificial tokens to get a subset of the tokens starting at the given offset
 		// then, take the first token in the range
-		tokens.range(new Token(offset, 1, 0), new Token(offset+1, 1, 0)).toList
+		tokens.range(new Token(offset, 1, IdentifierToken), new Token(offset+1, 1, IdentifierToken)).toList
 	}
 
 	/** Filters unwanted symbols, such as packages.*/

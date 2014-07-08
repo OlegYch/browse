@@ -86,16 +86,20 @@ private class BasicStyler(title: String, baseStyle: String, baseJs: String, base
 			Annotation("""<span class="typed">""" + typeSpan, "</span>") :: baseAnnotations
 	}
 
-  private def classes(code: Int) = TokenType(code).collect {
-    case CharToken => "char"
-    case IntToken => "int"
-    case LongToken => "long"
-    case FloatToken => "float"
-    case DoubleToken => "double"
-    case StringToken => "string"
-    case SymbolToken => "symbol"
-    case CommentToken => "comment"
-    case DelimiterToken => "delimiter"
-    case KeywordToken => "keyword"
-  }.toList
+  private def classes(code: TokenType) = {
+    val cssClass = code match {
+      case CharToken => "char"
+      case IntToken => "int"
+      case LongToken => "long"
+      case FloatToken => "float"
+      case DoubleToken => "double"
+      case StringToken => "string"
+      case SymbolToken => "symbol"
+      case CommentToken => "comment"
+      case DelimiterToken => "delimiter"
+      case KeywordToken => "keyword"
+      case _ => ""
+    }
+    (cssClass :: Nil).filter(_.nonEmpty)
+  }
 }
