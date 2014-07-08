@@ -33,7 +33,7 @@ object HtmlWriter
 	/** Copies the jQuery script available as a resource on the classpath to the file 'to'.*/
 	def writeJQuery(to: File) { FileUtil.writeResource(LinkedJQuery, to) }
 
-	final val nl = System.getProperty("line.separator")
+	final val nl = "\n"
 }
 
 /** Outputs a set of html files and auxiliary javascript and CSS files that annotate the source
