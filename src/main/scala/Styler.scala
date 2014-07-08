@@ -85,26 +85,17 @@ private class BasicStyler(title: String, baseStyle: String, baseJs: String, base
 		else
 			Annotation("""<span class="typed">""" + typeSpan, "</span>") :: baseAnnotations
 	}
-	private def classes(code: Int) =
-	{
-		import Tokens._
-		code match
-		{
-			case CHARLIT => "char" :: Nil
-			case INTLIT => "int" :: Nil
-			case LONGLIT => "long" :: Nil
-			case FLOATLIT => "float" :: Nil
-			case DOUBLELIT => "double" :: Nil
-			case STRINGLIT => "string" :: Nil
-			case SYMBOLLIT => "symbol" :: Nil
-			case COMMENT => "comment" :: Nil
-		        case LPAREN | RPAREN | LBRACKET | RBRACKET | LBRACE | RBRACE => "delimiter" :: Nil
-			case _ =>
-				def isKeyword(code: Int) = code >= IF && code <= LAZY
-				if(isKeyword(code))
-					"keyword" :: Nil
-				else
-					Nil
-		}
-	}
+
+  private def classes(code: Int) = TokenType(code).collect {
+    case CharToken => "char"
+    case IntToken => "int"
+    case LongToken => "long"
+    case FloatToken => "float"
+    case DoubleToken => "double"
+    case StringToken => "string"
+    case SymbolToken => "symbol"
+    case CommentToken => "comment"
+    case DelimiterToken => "delimiter"
+    case KeywordToken => "keyword"
+  }.toList
 }

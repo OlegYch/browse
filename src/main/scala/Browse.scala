@@ -149,17 +149,12 @@ abstract class Browse extends Plugin
 	/** Filters out unwanted tokens such as whitespace and commas.  Braces are currently
 	* included because () is annotated as Unit, and a partial function created by
 	* { case ... } is associated with the opening brace.  */
-	private def includeToken(code: Int) =
-	{
-		import Tokens.{COMMENT, USCORE, LPAREN, RBRACE, IF, LAZY, isIdentifier, isLiteral}
-		def isBrace(code: Int) = code >= LPAREN && code <= RBRACE
-	  def isKeyword(code: Int) = code >= IF && code <= LAZY
-		code match
-		{
-			case COMMENT | USCORE => true
-			case _ => isKeyword(code) || isIdentifier(code) || isLiteral(code) || isBrace(code)
-		}
-	}
+  private def includeToken(code: Int) = {
+    TokenType(code).exists {
+      case KeywordToken | IdentifierToken | DelimiterToken | CommentToken | UscoreToken => true
+      case any => any.literal
+    }
+  }
 	/** Gets the token for the given offset.*/
 	private def tokenAt(tokens: wrap.SortedSetWrapper[Token], offset: Int): Option[Token] =
 		tokensAt(tokens, offset).headOption
@@ -178,7 +173,7 @@ abstract class Browse extends Plugin
 		s.isPrimaryConstructor // the primary constructor overlaps with the class type, so just use the class type
 	private def ignoreBase(s: Symbol): Boolean =
 		!s.exists ||
-		s.isPackage || // nothing done with packages
+		s.hasPackageFlag || // nothing done with packages
 		s.isImplClass
 		
 	private class Traverse(tokens: wrap.SortedSetWrapper[Token], source: SourceFile, index: TopLevelIndex) extends Traverser
@@ -225,7 +220,7 @@ abstract class Browse extends Plugin
 			{
 				def processDefaultSymbol() =
 				{
-					if(t.hasSymbol && !ignore(t.symbol))
+					if(t.hasSymbolField && !ignore(t.symbol))
 						processSymbol(t, token, source.file.file, index)
 				}
 				def processSimple() { token.tpe = TypeAttribute(typeString(t.tpe), None) }
@@ -459,7 +454,7 @@ abstract class Browse extends Plugin
     } else if(sym.isPrimaryConstructor)
 			sym.owner
 		else if(sym.isStable && sym.isMethod) {
-			val get = sym.getter(sym.enclClass)
+			val get = sym.getterIn(sym.enclClass)
 			if(get == NoSymbol) sym else get
 		}
 		else
