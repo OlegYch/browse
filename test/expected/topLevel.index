@@ -5,6 +5,7 @@ If : If.scala
 Literals : Literals.scala
 NestedDefs : NestedDefs.scala
 Q : Q.scala
+ValVsDef : ValVsDef.scala
 XML : XML.scala
 defs : Defs.scala
 defs.Defs : Defs.scala

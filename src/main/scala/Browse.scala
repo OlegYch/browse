@@ -133,7 +133,9 @@ abstract class Browse extends Plugin
 				super.nextToken()
         code.filter(includeToken).foreach { code =>
           val length = (lastOffset - offset0) max 1
-          tokens += new Token(offset0, length, code, name0, line = line(offset0) + 1, column = column(offset0) + 1)
+          val token = new Token(offset0, length, code, name0, line = line(offset0) + 1, column = column(offset0) + 1)
+//          println(s"token $token")
+          tokens += token
         }
 			}
 		}
@@ -154,8 +156,8 @@ abstract class Browse extends Plugin
     case any => any.literal
   }
 	/** Gets the token for the given offset.*/
-	private def tokenAt(tokens: wrap.SortedSetWrapper[Token], offset: Int): Option[Token] = {
-    val token = tokensAt(tokens, offset)
+	private def tokenAt(tokens: wrap.SortedSetWrapper[Token], tree: Tree): Option[Token] = {
+    val token = if (!tree.pos.isDefined) Nil else tokensAt(tokens, tree.pos.point)
 //    println(s"$offset $token")
     token.headOption
   }
@@ -187,6 +189,8 @@ abstract class Browse extends Plugin
 				process(tree, index)
 				super.traverse(tree)
 			}
+      val token = tokenAt(tokens, tree)
+      println(s"token $token")
 			tree match
 			{
 				case ValDef(_, _, _, rhs) =>
@@ -217,7 +221,7 @@ abstract class Browse extends Plugin
 		private def process(t: Tree, index: TopLevelIndex)
 		{
 			def catchToNone[T](f: => T): Option[T] = try Some(f) catch { case e: UnsupportedOperationException => None }
-			for(tSource <- catchToNone(t.pos.source) if tSource == source; token <- tokenAt(tokens, t.pos.point))
+			for(tSource <- catchToNone(t.pos.source) if tSource == source; token <- tokenAt(tokens, t))
 			{
 				def processDefaultSymbol() =
 				{
@@ -331,6 +335,9 @@ abstract class Browse extends Plugin
 					case None => ()//addDefinition()
 				}
 			}
+      println(s"tree $t")
+      println(s"symbol $sym")
+      println(s"token $token")
 		}
 	}
 

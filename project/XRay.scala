@@ -32,7 +32,6 @@ object XRay extends Build {
 
   def testProjectSettings = Seq(
     autoCompilerPlugins := true,
-    compile in Compile <<= (compile in Compile).dependsOn(clean),
     libraryDependencies := {
       CrossVersion.partialVersion(scalaVersion.value) match {
         case Some((2, scalaMajor)) if scalaMajor >= 11 =>
@@ -41,7 +40,23 @@ object XRay extends Build {
           libraryDependencies.value
       }
     },
+    Keys.testOnly := {
+      import sbt.complete.DefaultParsers._
+      val base = baseDirectory.value
+      val args: Seq[String] = spaceDelimited("<source file name>").parsed
+      val oldFiles = args.map(file => (base / file) -> IO.read(base / file))
+      val s = state.value
+//      oldFiles.foreach { case (file, _) => IO.append(file, " ")}
+//      println("append")
+      val analysis = Project.extract(s).runTask(compile in Compile, s)
+//      println(analysis)
+//      oldFiles.foreach { case (file, content) => IO.write(file, content)}
+//      println("revert")
+      val out = (classDirectory in Compile).value
+      checkOutput(out / "../classes.sxr", base / "expected", streams.value.log, oldFiles.map(_._1.getName).toSet)
+    },
     Keys.test := {
+      val __ = clean.value
       val _ = (compile in Compile).value
       val out = (classDirectory in Compile).value
       val base = baseDirectory.value
@@ -81,7 +96,7 @@ object XRay extends Build {
     }
 
 
-  def checkOutput(sxrDir: File, expectedDir: File, log: Logger) {
+  def checkOutput(sxrDir: File, expectedDir: File, log: Logger, onlyFor: Set[String] = Set()) {
     val actual = filesToCompare(sxrDir)
     val expected = filesToCompare(expectedDir)
     val actualRelative = actual._2s
@@ -93,7 +108,7 @@ object XRay extends Build {
       log.error(s"Actual filenames not expected: ${print(actualOnly)}Expected filenames not present: ${print(expectedOnly)}")
       sys.error("Actual filenames differed from expected filenames.")
     }
-    val different = actualRelative filterNot { relativePath =>
+    val different = actualRelative filter(actual => onlyFor.isEmpty || onlyFor(actual.replace(".html", ""))) filterNot { relativePath =>
       val actualFile = actual.reverse(relativePath).head
       val expectedFile = expected.reverse(relativePath).head
       val same = sameFile(actualFile, expectedFile)
