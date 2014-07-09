@@ -13,17 +13,17 @@
 <span class="keyword">object</span> <a title="XML.type" id="XML">XML</a>
 <a href="#XML" title="XML.type" class="delimiter">{</a>
 	<span class="comment">// xml not highlighted because the XML parser doesn't produce tokens</span>
-	<span class="keyword">val</span> <a title="scala.xml.Elem" id="XML.xx">xx</a> = &lt;script language=&quot;javascript&quot;&gt;&lt;xml:unparsed&gt;
+	<span class="keyword">val</span> <a title="scala.xml.Elem" id="XML.xx">xx</a> = &lt;<a title="scala.xml.MetaData" id="XML.xx.$buf">script</a> language=<span title="scala.xml.Text" class="string">&quot;javascript&quot;</span>&gt;&lt;xml:unparsed&gt;
 ...
-elements[i].style.display = 'none';
+elements<span class="delimiter">[</span>i<span class="delimiter">]</span>.style.display = <span class="symbol">'none</span>';
 ...
     &lt;/xml:unparsed&gt;&lt;/script&gt;
 
 
 	<span class="keyword">def</span> <a title="(q: Q)scala.xml.Elem" id="XML.embed">embed</a><span class="delimiter">(</span><a title="Q" id="XML.embed.q">q</a>: <a href="Q.scala.html#;Q" title="Q">Q</a><span class="delimiter">)</span> =
-		<span class="delimiter">&lt;atag anAttr={</span><span title="Int(3)" class="int">3</span>.<span title="()String">toString</span><span class="delimiter">}&gt;
-			&lt;nested&gt;
-				{</span> <a href="#XML.embed.q" title="Q">q</a> <a href="Q.scala.html#;Q.m" title="(i: Int)Int">m</a> <span title="Int(55)" class="int">55</span> }
+		&lt;<a title="scala.xml.MetaData" id="XML.embed.$md">atag</a> anAttr=<span class="delimiter">{</span><span title="Int(3)" class="int">3</span>.<span title="()String">toString</span><span class="delimiter">}</span>&gt;
+			&lt;<span title="scala.xml.Elem">nested</span>&gt;
+				<span class="delimiter">{</span> <a href="#XML.embed.q" title="Q">q</a> <a href="Q.scala.html#;Q.m" title="(i: Int)Int">m</a> <span title="Int(55)" class="int">55</span> <span class="delimiter">}</span>
 			&lt;/nested&gt;
 		&lt;/atag&gt;
 <span class="delimiter">}</span>

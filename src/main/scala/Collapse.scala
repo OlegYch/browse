@@ -20,8 +20,8 @@ private object Collapse
 		// The set of all definition IDs used by more than one token.  These tokens generally indicate a problem: it is invalid to have tokens
 		//   with the same ID.
 		val duplicates = Set( idOccurrences.filter(_._2 > 1).map(_._1).toSeq : _*)
-/*		for( (id, occur) <- idOccurrences if occur > 1)
-			println("dup(" + occur + ") ID " + id.id + ": " + tokens.filter(_.definitions.contains(id)))*/
+//		for( (id, occur) <- idOccurrences if occur > 1)
+//			println("dup(" + occur + ") ID " + id.id + ": " + tokens.filter(_.definitions.contains(id)))
 		tokens.foreach( _ --= duplicates)
 	}
 }

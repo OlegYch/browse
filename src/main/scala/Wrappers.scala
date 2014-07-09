@@ -80,7 +80,7 @@ private[sxr] sealed class MutableSetWrapper[T](wrapped: JSet[T]) extends SetWrap
   def -=(t: T) { underlying.remove(t) }
   def readOnly: Set[T] = this
 }
-private[sxr] final class SortedSetWrapper[T](wrapped: JSortedSet[T]) extends MutableSetWrapper(wrapped)
+private[sxr] final case class SortedSetWrapper[T](wrapped: JSortedSet[T]) extends MutableSetWrapper(wrapped)
 {
   def first: Option[T] = if(isEmpty) None else Some(wrapped.first)
   def last: Option[T] = if(isEmpty) None else Some(wrapped.last)

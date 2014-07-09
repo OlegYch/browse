@@ -69,8 +69,8 @@ object FileUtil
 	{
 		val source = getClass.getResourceAsStream(resource)
 		if(source == null)
-			sys.error("Could not find resource " + resource)
-		try { write(source, to) }
+      ()//sys.error("Could not find resource " + resource)
+    else try { write(source, to) }
 		finally { source.close() }
 	}
 	/** Writes the 'input' stream to the file 'to'.*/

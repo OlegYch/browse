@@ -19,7 +19,7 @@ object Defs
 
 	var v: Int = 3
 	v = 2
-
+  val lol = v + xx
 	lazy val x = v
 	lazy val xx: Int = 3
 
@@ -32,21 +32,22 @@ object Defs
 	def nested = {
 		val v = x
 		def xx: Int = {
-			val v = q(2)
-			val x = {
-				v + xx
-			}
-			x + v
+			val v = {
+        val bla = q(2) + xx
+        bla
+      }
+			val x1 = v + xx
+			x1 + v
 		}
 
 		// TODO: scheme that handles unnamed, nested scopes
-		{
-			val v = xx
-
-			{
-				val xx = 3
-				v + xx
-			}
-		}
+//		{
+//			val v = xx
+//
+//			{
+//				val xx = 3
+//				v + xx
+//			}
+//		}
 	}
 }

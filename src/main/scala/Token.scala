@@ -19,7 +19,7 @@ private class Link(val path: String, val target: StableID)
 * 'start' is the offset of the token in the original source file.
 * 'length' is the length of the token in the original source file
 * 'code' is the class of the token (see Tokens in the compiler)*/
-private case class Token(start: Int, length: Int, code: TokenType) extends Ordered[Token] with Comparable[Token]
+private case class Token(start: Int, length: Int, code: TokenType, name: String = "", line: Int = 0, column: Int = 0) extends Ordered[Token] with Comparable[Token]
 {
 	require(start >= 0)
 	require(length > 0)
@@ -88,6 +88,8 @@ private case class Token(start: Int, length: Int, code: TokenType) extends Order
 			case None => ()
 		}
 	}
+
+  override def toString = s"Token($start, $length, $name, $line:$column, $code, ${definitions.map(_.id).mkString(",")})"
 }
 /** Holds type information.  This class will probably change to accomodate tokeninzing types. */
 private case class TypeAttribute(name: String, definition: Option[Link])

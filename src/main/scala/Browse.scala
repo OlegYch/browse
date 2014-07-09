@@ -5,13 +5,12 @@
 package sxr
 
 import scala.tools.nsc.{ast, plugins, symtab, util, Global}
-import ast.parser.Tokens
 import plugins.Plugin
 import symtab.Flags
 import reflect.internal.util.SourceFile
 import annotation.tailrec
 
-import java.io.{File, Reader, Writer}
+import java.io.File
 import java.net.URL
 
 import OutputFormat.{OutputFormat, getWriter}
@@ -71,7 +70,9 @@ abstract class Browse extends Plugin
 				val traverser = new Traverse(tokens, unit.source, combinedIndex)
 				traverser(unit.body)
 				val tokenList = tokens.toList
+//        println(tokenList)
 				Collapse(tokenList.toSet)
+//        println(tokenList)
 
 				writers.foreach(_.writeUnit(sourceFile, getRelativeSourcePath(sourceFile), tokenList))
 			}
@@ -111,7 +112,7 @@ abstract class Browse extends Plugin
 		val tokens = wrap.Wrappers.treeSet[Token]
 		def addComment(start: Int, end: Int) { tokens += new Token(start, end - start + 1, CommentToken) }
 
-		class Scan extends syntaxAnalyzer.UnitScanner(unit)
+		class Scan extends syntaxAnalyzer.ParensAnalyzer(unit, Nil)
 		{
 			override def deprecationWarning(off: Int, msg: String) {}
 			override def error(off: Int, msg: String) {}
@@ -128,12 +129,11 @@ abstract class Browse extends Plugin
 			override def nextToken() {
 				val offset0 = offset
 				val code = TokenType(token)
-
+        val name0 = Option(name).mkString
 				super.nextToken()
-
         code.filter(includeToken).foreach { code =>
           val length = (lastOffset - offset0) max 1
-          tokens += new Token(offset0, length, code)
+          tokens += new Token(offset0, length, code, name0, line = line(offset0) + 1, column = column(offset0) + 1)
         }
 			}
 		}
@@ -154,8 +154,11 @@ abstract class Browse extends Plugin
     case any => any.literal
   }
 	/** Gets the token for the given offset.*/
-	private def tokenAt(tokens: wrap.SortedSetWrapper[Token], offset: Int): Option[Token] =
-		tokensAt(tokens, offset).headOption
+	private def tokenAt(tokens: wrap.SortedSetWrapper[Token], offset: Int): Option[Token] = {
+    val token = tokensAt(tokens, offset)
+//    println(s"$offset $token")
+    token.headOption
+  }
 	/** Gets the token for the given offset.*/
 	private def tokensAt(tokens: wrap.SortedSetWrapper[Token], offset: Int): List[Token] =
 	{
@@ -277,12 +280,13 @@ abstract class Browse extends Plugin
 	private def processSymbol(t: Tree, token: Token, sourceFile: File, index: TopLevelIndex)
 	{
 		val sym = t.symbol
+    //todo find out why definition is incorrectly added to + in val lol = x + vv
 		def addDefinition()
 		{
 			for(id <- stableID(sym)) {
 				token.source = getRelativeSourcePath(sourceFile)
-				token += id
-			}
+        token += id
+      }
 		}
 		sym match
 		{
