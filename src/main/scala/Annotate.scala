@@ -50,7 +50,7 @@ private class Annotate(input: Reader, output: Writer, tokens: List[Token], style
 			case token :: tail => //look at the next token
 				if(token.start < index)
 				{
-					println("Overlapping span detected at index " + index + ": " + token)
+//					println("Overlapping span detected at index " + index + ": " + token)
 					annotate(index, tail)
 				}
 				else

@@ -190,7 +190,7 @@ abstract class Browse extends Plugin
 				super.traverse(tree)
 			}
       val token = tokenAt(tokens, tree)
-      println(s"token $token")
+//      println(s"token $token")
 			tree match
 			{
 				case ValDef(_, _, _, rhs) =>
@@ -335,9 +335,9 @@ abstract class Browse extends Plugin
 					case None => ()//addDefinition()
 				}
 			}
-      println(s"tree $t")
-      println(s"symbol $sym")
-      println(s"token $token")
+//      println(s"tree $t")
+//      println(s"symbol $sym")
+//      println(s"token $token")
 		}
 	}
 
