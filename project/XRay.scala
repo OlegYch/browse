@@ -6,7 +6,7 @@ object XRay extends Build {
   lazy val main = Project("sxr", file(".")) settings(
     name := "sxr",
     organization in ThisBuild := "org.scala-sbt.sxr",
-    version in ThisBuild := "0.3.2-SCASTIE",
+    version in ThisBuild := "0.3.3-SCASTIE-SNAPSHOT",
     scalaVersion in ThisBuild := "2.11.1",
     scalacOptions += "-deprecation",
     ivyConfigurations += js,
