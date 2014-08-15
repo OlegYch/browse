@@ -22,7 +22,6 @@ object BrowsePlugin
 	val OutputFormatSeparator = '+'
 	/** This is the name of the options that specifies a file containing one URL per line for each external sxr location to link to. */
 	val ExternalLinksOptionName = "link-file:"
-	val NoExternalIndex = "no-external-index"
 }
 /* The standard plugin setup.  The main implementation is in Browse.  The entry point is Browse.generateOutput */
 class BrowsePlugin(val global: Global) extends Browse
@@ -57,8 +56,7 @@ class BrowsePlugin(val global: Global) extends Browse
 				outputFormats = parseOutputFormats(option.substring(OutputFormatsOptionName.length))
 			else if(option.startsWith(ExternalLinksOptionName))
 				externalLinkURLs = parseExternalLinks(option.substring(ExternalLinksOptionName.length))
-      else if(option == NoExternalIndex) ()
-      else
+			else
 				error("Option for source browser plugin not understood: " + option)
 		}
 	}
@@ -89,9 +87,8 @@ class BrowsePlugin(val global: Global) extends Browse
 		val formats = prefix + OutputFormatsOptionName + "<formats>          '" + OutputFormatSeparator +
 			"'-separated list of output formats to write (available: " + OutputFormat.all.mkString(",") + " - defaults to: " + Html + ")."
 		val link = prefix + ExternalLinksOptionName + "<path>            Set the file containing sxr link.index URLs for external linking."
-		val externalIndex = prefix + NoExternalIndex + "            Don't read indexes from remote urls."
 
-		Some( Seq(base, formats, link, externalIndex).mkString("", "\n", "\n") )
+		Some( Seq(base, formats, link).mkString("", "\n", "\n") )
 	}
 
 	private object Component extends PluginComponent
@@ -106,7 +103,7 @@ class BrowsePlugin(val global: Global) extends Browse
 	private class BrowsePhase(prev: Phase) extends Phase(prev)
 	{
 		def name = BrowsePlugin.this.name
-		def run = generateOutput(if (options.contains(NoExternalIndex)) Nil else externalIndexes)
+		def run = generateOutput(externalIndexes)
 	}
 
 	private def externalIndexes: List[TopLevelIndex] = externalLinkURLs.map(getIndex)
