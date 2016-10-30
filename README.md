@@ -1,3 +1,14 @@
+TODO
+==========
+- sbt-sxr-publisher publish sxred sources to maven
+- setup repo for sxred sources of common libs
+- sbt-sxr-consumer gather sxred sources for all deps
+- sxr-server serve sxred sources from classpath/fs through http
+- sxr-worksheet insert logs for each expression, output to console/file, link with sxred source
+- serve all sxred sources from ivy cache in scastie
+- make scastie rendered sources link to scastie
+- use sxr-worksheet in scastie
+
 Browsable Scala source code in HTML with:
 
 - syntax highlighting
